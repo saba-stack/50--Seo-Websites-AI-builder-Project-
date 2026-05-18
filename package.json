@@ -1,0 +1,74 @@
+{
+  "name": "alyson-ai-backend",
+  "version": "1.0.0",
+  "description": "Production backend for Alyson AI local news intelligence platform",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "seed": "npm run prisma:seed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saba-stack/50--Seo-Websites-AI-builder-Project-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/saba-stack/50--Seo-Websites-AI-builder-Project-/issues"
+  },
+  "homepage": "https://github.com/saba-stack/50--Seo-Websites-AI-builder-Project-#readme",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.96.0",
+    "@aws-sdk/client-s3": "^3.1048.0",
+    "@prisma/client": "^6.19.3",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.10",
+    "cheerio": "^1.2.0",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dayjs": "^1.11.20",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "openai": "^6.38.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "prisma": "^6.19.3",
+    "puppeteer": "^25.0.3",
+    "rate-limiter-flexible": "^11.1.0",
+    "rss-parser": "^3.13.0",
+    "slugify": "^1.6.9",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.8.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "pino-pretty": "^13.1.3",
+    "tsx": "^4.22.1",
+    "typescript": "^6.0.3"
+  }
+}
