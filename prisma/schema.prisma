@@ -1,0 +1,401 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  REVIEWER
+}
+
+enum ArticleStatus {
+  DRAFT
+  REVIEW_PENDING
+  APPROVED
+  PUBLISHED
+  REJECTED
+}
+
+enum GenerationType {
+  SUMMARY
+  REWRITE
+  HEADLINE
+  SEO
+  NEWSLETTER
+  SOCIAL_CAPTION
+}
+
+enum AiProvider {
+  OPENAI
+  CLAUDE
+  DEEPSEEK
+}
+
+enum ModerationActionType {
+  APPROVE
+  REJECT
+  EDIT
+  ESCALATE
+}
+
+enum CampaignType {
+  NEWSLETTER
+  PROMOTIONAL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum EventType {
+  VIEW
+  CLICK
+  ENGAGEMENT
+  REVENUE
+  EMAIL_OPEN
+  EMAIL_CLICK
+  SUBSCRIBE
+  UNSUBSCRIBE
+}
+
+enum ScrapeSourceType {
+  REDDIT
+  RSS
+  BBC
+  REUTERS
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+  WEB
+}
+
+enum ScrapeStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum JobType {
+  SCRAPING
+  AI_GENERATION
+  RANKING
+  EMAIL_SENDING
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum IntegrationProvider {
+  OPENAI
+  ANTHROPIC
+  DEEPSEEK
+  SALESFORCE
+  GMASS
+}
+
+enum SettingScope {
+  GLOBAL
+  CITY
+}
+
+model City {
+  id                String            @id @default(uuid())
+  slug              String            @unique
+  name              String
+  state             String
+  country           String            @default("US")
+  timezone          String
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  users             User[]
+  articles          Article[]
+  aiGenerations     AiGeneration[]
+  subscribers       Subscriber[]
+  campaigns         EmailCampaign[]
+  analyticsEvents   AnalyticsEvent[]
+  scrapedContents   ScrapedContent[]
+  rankingSnapshots  RankingSnapshot[]
+  settings          Setting[]
+  integrations      Integration[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  articles    Article[]
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String
+  role              Role
+  cityId            String?
+  isActive          Boolean            @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  city              City?              @relation(fields: [cityId], references: [id])
+  refreshTokens     RefreshToken[]
+  moderationActions ModerationAction[]
+  authoredArticles  Article[]          @relation("ArticleAuthor")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Article {
+  id                 String             @id @default(uuid())
+  cityId             String
+  categoryId         String?
+  authorId           String?
+  title              String
+  slug               String
+  summary            String?
+  content            String
+  sourceUrl          String?
+  sourceName         String?
+  seoTitle           String?
+  seoDescription     String?
+  canonicalUrl       String?
+  internalLinks      Json?
+  status             ArticleStatus      @default(DRAFT)
+  publishedAt        DateTime?
+  scheduledAt        DateTime?
+  confidenceScore    Float?
+  aiProvider         AiProvider?
+  aiModel            String?
+  isAbTestEnabled    Boolean            @default(false)
+  abHeadlineA        String?
+  abHeadlineB        String?
+  manualRankOverride Int?
+  views              Int                @default(0)
+  clicks             Int                @default(0)
+  engagement         Float              @default(0)
+  revenue            Float              @default(0)
+  ctr                Float              @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  city               City               @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  category           Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author             User?              @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  aiGenerations      AiGeneration[]
+  moderationActions  ModerationAction[]
+  rankings           RankingSnapshot[]
+  analyticsEvents    AnalyticsEvent[]
+
+  @@unique([cityId, slug])
+  @@index([cityId, status, publishedAt])
+}
+
+model AiGeneration {
+  id              String         @id @default(uuid())
+  articleId       String?
+  cityId          String
+  generationType  GenerationType
+  prompt          String
+  response        String
+  provider        AiProvider
+  model           String
+  confidenceScore Float
+  metadata        Json?
+  fallbackUsed    Boolean        @default(false)
+  errorMessage    String?
+  createdAt       DateTime       @default(now())
+  city            City           @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  article         Article?       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([cityId, generationType, createdAt])
+}
+
+model ModerationAction {
+  id            String               @id @default(uuid())
+  articleId     String
+  userId        String
+  action        ModerationActionType
+  notes         String?
+  beforeContent String?
+  afterContent  String?
+  createdAt     DateTime             @default(now())
+  article       Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([articleId, createdAt])
+}
+
+model Subscriber {
+  id         String          @id @default(uuid())
+  cityId     String
+  email      String
+  isActive   Boolean         @default(true)
+  source     String?
+  tags       Json?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  city       City            @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  events     CampaignEvent[]
+  analytics  AnalyticsEvent[]
+
+  @@unique([cityId, email])
+  @@index([cityId, isActive])
+}
+
+model EmailCampaign {
+  id             String          @id @default(uuid())
+  cityId          String
+  title           String
+  subject         String
+  htmlContent     String
+  textContent     String?
+  type            CampaignType
+  status          CampaignStatus @default(DRAFT)
+  provider        IntegrationProvider?
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  openRate        Float          @default(0)
+  clickRate       Float          @default(0)
+  deliveredCount  Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  city            City           @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  events          CampaignEvent[]
+
+  @@index([cityId, status, scheduledAt])
+}
+
+model CampaignEvent {
+  id           String        @id @default(uuid())
+  campaignId   String
+  subscriberId String?
+  eventType    EventType
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  campaign     EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber   Subscriber?   @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, eventType])
+}
+
+model AnalyticsEvent {
+  id           String      @id @default(uuid())
+  cityId       String
+  articleId    String?
+  subscriberId String?
+  eventType    EventType
+  source       String?
+  value        Float       @default(1)
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  city         City        @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  article      Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  subscriber   Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@index([cityId, eventType, createdAt])
+}
+
+model ScrapedContent {
+  id           String           @id @default(uuid())
+  cityId        String?
+  sourceType    ScrapeSourceType
+  status        ScrapeStatus    @default(QUEUED)
+  title         String?
+  content       String?
+  author        String?
+  url           String          @unique
+  engagement    Int             @default(0)
+  metadata      Json?
+  publishedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  city          City?           @relation(fields: [cityId], references: [id], onDelete: SetNull)
+
+  @@index([sourceType, createdAt])
+  @@index([cityId, createdAt])
+}
+
+model RankingSnapshot {
+  id         String   @id @default(uuid())
+  cityId     String
+  articleId  String
+  score      Float
+  position   Int
+  reason     Json?
+  createdAt  DateTime @default(now())
+  city       City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([cityId, position, createdAt])
+}
+
+model Integration {
+  id              String              @id @default(uuid())
+  cityId          String?
+  provider        IntegrationProvider
+  encryptedApiKey String
+  config          Json?
+  isEnabled       Boolean             @default(true)
+  lastValidatedAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  city            City?               @relation(fields: [cityId], references: [id], onDelete: SetNull)
+
+  @@unique([cityId, provider])
+  @@index([provider, isEnabled])
+}
+
+model Setting {
+  id        String       @id @default(uuid())
+  cityId    String?
+  scope     SettingScope
+  key       String
+  value     Json
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  city      City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
+
+  @@unique([cityId, key])
+  @@index([scope, key])
+}
+
+model JobRun {
+  id         String    @id @default(uuid())
+  type       JobType
+  status     JobStatus
+  payload    Json
+  attempts   Int       @default(0)
+  error      String?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([type, status, createdAt])
+}
