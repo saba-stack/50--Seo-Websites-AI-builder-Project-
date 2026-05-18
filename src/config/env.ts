@@ -3,6 +3,16 @@ import { z } from "zod";
 
 dotenv.config();
 
+const resolvedDatabaseUrl =
+  process.env.DATABASE_URL ??
+  process.env.DATABASE_PRIVATE_URL ??
+  process.env.POSTGRES_URL ??
+  process.env.POSTGRES_PRISMA_URL;
+
+if (resolvedDatabaseUrl && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = resolvedDatabaseUrl;
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(8080),
@@ -31,7 +41,10 @@ const envSchema = z.object({
     .transform((value) => value.toLowerCase() === "true")
 });
 
-const parsed = envSchema.safeParse(process.env);
+const parsed = envSchema.safeParse({
+  ...process.env,
+  DATABASE_URL: resolvedDatabaseUrl ?? process.env.DATABASE_URL
+});
 
 if (!parsed.success) {
   console.error("Invalid environment configuration", parsed.error.flatten().fieldErrors);
