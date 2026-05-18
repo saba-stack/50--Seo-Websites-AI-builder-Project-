@@ -1,6 +1,7 @@
 FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 COPY package*.json ./
 RUN npm ci
