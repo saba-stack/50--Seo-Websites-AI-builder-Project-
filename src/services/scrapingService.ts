@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import Parser from "rss-parser";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import { Prisma, ScrapeSourceType, ScrapeStatus } from "@prisma/client";
 import { scrapingRepository } from "../repositories/scrapingRepository";
 
@@ -62,7 +62,15 @@ export class ScrapingService {
   ) {
     let html = "";
     if (dynamic) {
-      const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      if (!executablePath) {
+        throw new Error("PUPPETEER_EXECUTABLE_PATH is required for dynamic scraping with puppeteer-core");
+      }
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox"],
+        executablePath
+      });
       const page = await browser.newPage();
       await page.goto(sourceUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
       html = await page.content();
