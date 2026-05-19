@@ -16,9 +16,22 @@ import { sendSuccess } from "./utils/response";
 export function createApp() {
   const app = express();
 
+ // Explicitly allow Lovable and existing origins
+  const lovableFrontendOrigin = "https://alyson-ai-nexus.lovable.app";
+  
   app.use(
     cors({
-      origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(","),
+      origin: (origin, callback) => {
+        const configuredOrigins = env.CORS_ORIGIN === "*" 
+          ? ["*"] 
+          : env.CORS_ORIGIN.split(",");
+          
+        if (!origin || configuredOrigins.includes("*") || origin === lovableFrontendOrigin || configuredOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true
     })
   );
